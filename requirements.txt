@@ -1,0 +1,5 @@
+langchain-core>=1.4.0
+paddleocr>=3.6.0
+paddlex>=3.6.0
+paddlepaddle>=3.3.0
+Pillow>=10.0.0
