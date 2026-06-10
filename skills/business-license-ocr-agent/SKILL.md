@@ -1,44 +1,44 @@
-# Business License OCR Agent
+# 营业执照 OCR Agent
 
-Use this skill when the task is to identify Chinese business license fields, extract structured content, validate it, and repair likely OCR errors.
+当任务是识别营业执照、抽取结构化字段、校验字段合法性，并修复常见 OCR 错误时，使用这个 skill。
 
-## Workflow
+## 工作流程
 
-1. Read OCR text from image, PDF, or an OCR engine.
-2. Extract canonical business license fields:
-   - unified social credit code
-   - company name
-   - company type
-   - legal representative
-   - registered capital
-   - establishment date
-   - business period
-   - address
-   - business scope
-   - registration authority
-   - approval date
-3. Validate high-signal fields with deterministic rules.
-4. Generate repair candidates for common OCR confusions.
-5. Only accept automatic repair when rules become stronger after repair.
-6. Return the final fields plus an explanation report.
+1. 从图片、PDF 或 OCR 引擎结果中读取文本。
+2. 抽取营业执照标准字段：
+   - 统一社会信用代码
+   - 名称
+   - 类型
+   - 法定代表人
+   - 注册资本
+   - 成立日期
+   - 营业期限
+   - 住所
+   - 经营范围
+   - 登记机关
+   - 核准日期
+3. 使用确定性规则校验高价值字段。
+4. 针对常见 OCR 混淆生成修复候选。
+5. 只有当修复后规则校验更强时，才接受自动修复。
+6. 返回最终字段、修复动作和解释报告。
 
-## Validation Rules
+## 校验规则
 
-- Unified social credit code should be 18 characters.
-- Allowed characters are digits plus uppercase letters excluding ambiguous letters such as I, O, S, V, Z.
-- Use the official weighted checksum rule for the 18th character.
-- Dates should match `YYYY 年 M 月 D 日`.
-- Registered capital should contain a number and a currency/unit marker.
+- 统一社会信用代码应为 18 位。
+- 可用字符为数字和部分大写字母，不包含 I、O、S、V、Z 等易混淆字符。
+- 第 18 位使用统一社会信用代码加权校验规则。
+- 日期应符合 `YYYY 年 M 月 D 日`。
+- 注册资本或出资额应包含数字和币种/单位。
 
-## Common OCR Repairs
+## 常见 OCR 修复
 
 - `O` or `o` -> `0`
 - `I`, `l`, or `|` -> `1`
 - `S` -> `5`
 
-## Output Contract
+## 输出约定
 
-Return:
+返回：
 
 ```json
 {
@@ -50,7 +50,6 @@ Return:
 }
 ```
 
-## Demo Talking Point
+## 演示讲法
 
-OCR is perception. The agent adds reasoning, validation, repair, and explainability.
-
+OCR 负责“看见”，Agent 负责组织工具链，增加规则校验、自动修复、语义后处理和可解释性。

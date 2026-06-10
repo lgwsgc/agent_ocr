@@ -5,6 +5,8 @@ from tkinter import BOTH, END, LEFT, RIGHT, TOP, Button, Frame, Label, Text, Tk
 from tkinter import messagebox
 
 from agents.license_agent import BusinessLicenseAgent
+from tools.compact_output import build_compact_result
+from tools.run_artifacts import copy_input_file, create_run_dir, mirror_final_result, save_run_artifacts
 
 
 ROOT = Path(__file__).resolve().parent
@@ -13,6 +15,7 @@ IMAGE_PATH = ROOT / "Snipaste_2026-06-04_15-12-26.jpg"
 REAL_OCR_TEXT = ROOT / "samples" / "license_real_ocr.md"
 TEXT_DEMO_OUT = ROOT / "outputs" / "gui_langchain_text_demo.json"
 REAL_DEMO_OUT = ROOT / "outputs" / "gui_real_ocr_demo.json"
+RUNS_ROOT = ROOT / "outputs" / "runs"
 
 
 class BusinessLicenseDemo:
@@ -115,7 +118,7 @@ class BusinessLicenseDemo:
         try:
             text = SAMPLE_TEXT.read_text(encoding="utf-8")
             result = BusinessLicenseAgent().run(text)
-            self._save_and_show(result, TEXT_DEMO_OUT)
+            self._save_and_show(result, TEXT_DEMO_OUT, SAMPLE_TEXT, "text", text)
         except Exception as exc:
             self._show_error(exc)
 
@@ -126,45 +129,20 @@ class BusinessLicenseDemo:
             text = REAL_OCR_TEXT.read_text(encoding="utf-8")
             result = BusinessLicenseAgent().run(text)
             result["ocr_source"] = str(REAL_OCR_TEXT)
-            self._save_and_show(result, REAL_DEMO_OUT)
+            self._save_and_show(result, REAL_DEMO_OUT, REAL_OCR_TEXT, "precomputed_ocr", text)
         except Exception as exc:
             self._show_error(exc)
 
-    def _save_and_show(self, result: dict, output_path: Path) -> None:
-        output_path.parent.mkdir(parents=True, exist_ok=True)
-        output_path.write_text(json.dumps(result, ensure_ascii=False, indent=2), encoding="utf-8")
-        self._set_output(self._format_result(result, output_path))
+    def _save_and_show(self, result: dict, output_path: Path, input_path: Path, mode: str, ocr_text: str) -> None:
+        run_dir = create_run_dir(RUNS_ROOT, input_path, mode)
+        copy_input_file(input_path, run_dir)
+        compact_result = build_compact_result(result)
+        save_run_artifacts(run_dir, result, compact_result, ocr_text, input_path, mode)
+        mirror_final_result(compact_result, output_path)
+        self._set_output(self._format_result(compact_result, run_dir / "final_result.json"))
 
     def _format_result(self, result: dict, output_path: Path) -> str:
-        lines = [
-            f"任务：{result['task']}",
-            f"框架：{result['framework']}",
-            f"状态：{result['summary']['status']}",
-            f"自动修复字段数：{result['summary']['auto_repair_count']}",
-            f"保存位置：{output_path}",
-            "",
-            "工具调用轨迹：",
-        ]
-        for item in result["tool_trace"]:
-            lines.append(f"  {item['step']}. {item['tool']}")
-            lines.append(f"     目的：{item['purpose']}")
-            lines.append(f"     观察：{item['observation']}")
-
-        lines.extend(["", "自动修复动作："])
-        if result["repair_actions"]:
-            for action in result["repair_actions"]:
-                lines.append(
-                    f"  - {action['field']}: {action['original']} -> {action['corrected']} "
-                    f"({action['reason']})"
-                )
-        else:
-            lines.append("  - 无需自动修复")
-
-        lines.extend(["", "最终字段："])
-        for key, value in result["final_fields"].items():
-            lines.append(f"  {key}: {value}")
-
-        return "\n".join(lines)
+        return f"保存位置：{output_path}\n\n{json.dumps(result, ensure_ascii=False, indent=2)}"
 
     def _set_output(self, text: str) -> None:
         self.output.after(0, lambda: self._replace_output(text))

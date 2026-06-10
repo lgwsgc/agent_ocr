@@ -1,20 +1,18 @@
 import json
 import subprocess
 import sys
+import time
 from pathlib import Path
 
 
 def run_paddleocr_vl(image_path: Path, output_dir: Path) -> dict:
-    """Run local PaddleOCR-VL through the PaddleOCR CLI.
-
-    The CLI writes rich document parsing artifacts. For the agent demo we collect
-    readable text from generated Markdown/TXT/JSON files and pass it downstream.
-    """
+    """调用本地 PaddleOCR-VL，把营业执照图片解析成可供 Agent 使用的 OCR 文本。"""
     image_path = image_path.resolve()
     output_dir = output_dir.resolve()
     output_dir.mkdir(parents=True, exist_ok=True)
 
     paddleocr_cli = find_paddleocr_cli()
+    started_at = time.perf_counter()
     cmd = [
         str(paddleocr_cli),
         "doc_parser",
@@ -46,8 +44,9 @@ def run_paddleocr_vl(image_path: Path, output_dir: Path) -> dict:
         )
     except FileNotFoundError as exc:
         raise RuntimeError(
-            "paddleocr CLI not found. Install it with `python -m pip install -U \"paddleocr[doc-parser]\"`."
+            "未找到 paddleocr 命令，请先执行：`python -m pip install -U \"paddleocr[doc-parser]\"`。"
         ) from exc
+    elapsed_seconds = round(time.perf_counter() - started_at, 3)
 
     text = collect_ocr_text(output_dir)
     if not text.strip():
@@ -55,6 +54,7 @@ def run_paddleocr_vl(image_path: Path, output_dir: Path) -> dict:
 
     return {
         "engine": "PaddleOCR-VL-1.6",
+        "elapsed_seconds": elapsed_seconds,
         "command": " ".join(cmd),
         "returncode": proc.returncode,
         "stdout_tail": proc.stdout[-2000:],
@@ -65,6 +65,7 @@ def run_paddleocr_vl(image_path: Path, output_dir: Path) -> dict:
 
 
 def find_paddleocr_cli() -> Path | str:
+    """优先使用当前 Python 环境中的 paddleocr.exe，找不到时回退到 PATH。"""
     scripts_dir = Path(sys.executable).resolve().parent / "Scripts"
     exe = scripts_dir / "paddleocr.exe"
     if exe.exists():
@@ -73,6 +74,7 @@ def find_paddleocr_cli() -> Path | str:
 
 
 def collect_ocr_text(output_dir: Path) -> str:
+    """从 PaddleOCR-VL 生成的 Markdown、文本和 JSON 文件中汇总可读文本。"""
     chunks = []
     for path in sorted(output_dir.rglob("*")):
         if path.suffix.lower() in {".md", ".txt"}:
@@ -83,6 +85,7 @@ def collect_ocr_text(output_dir: Path) -> str:
 
 
 def extract_json_text(path: Path) -> list[str]:
+    """读取 OCR JSON 文件，并递归提取其中的字符串内容。"""
     try:
         data = json.loads(path.read_text(encoding="utf-8", errors="ignore"))
     except json.JSONDecodeError:
@@ -93,6 +96,7 @@ def extract_json_text(path: Path) -> list[str]:
 
 
 def walk_json(value, values: list[str]) -> None:
+    """递归遍历 JSON 对象，把所有非空字符串收集到列表中。"""
     if isinstance(value, str):
         if value.strip():
             values.append(value.strip())

@@ -222,13 +222,13 @@ def main():
     add_kicker(s, "真实图片识别结果", 9)
     add_title(s, "PaddleOCR-VL 已从样例营业执照中抽取出关键企业字段", "OCR 负责“看见”，Agent 负责把文本整理成可信结构。")
     rows = [
-        ("统一社会信用代码", fields.get("unified_social_credit_code", "91110102082881146K")),
-        ("名称", fields.get("company_name", "中兴华会计师事务所（特殊普通合伙）")),
-        ("类型", fields.get("company_type", "特殊普通合伙企业")),
-        ("执行事务合伙人", fields.get("legal_representative", "李尊农、乔久华")),
-        ("出资额", fields.get("registered_capital", "8916万元")),
-        ("成立日期", fields.get("establishment_date", "2013年11月04日")),
-        ("核准日期", fields.get("approval_date", "2025年02月27日")),
+        ("统一社会信用代码", fields.get("统一社会信用代码", "91110102082881146K")),
+        ("名称", fields.get("名称", "中兴华会计师事务所（特殊普通合伙）")),
+        ("类型", fields.get("类型", "特殊普通合伙企业")),
+        ("执行事务合伙人", fields.get("法定代表人", "李尊农、乔久华")),
+        ("出资额", fields.get("注册资本", "8916万元")),
+        ("成立日期", fields.get("成立日期", "2013年11月04日")),
+        ("核准日期", fields.get("核准日期", "2025年02月27日")),
     ]
     for i, (k, v) in enumerate(rows):
         y = 1.95 + i * 0.55
